@@ -35,9 +35,10 @@ import org.gradle.api.internal.tasks.userinput.NonInteractiveUserInputHandler;
 import org.gradle.api.internal.tasks.userinput.UserInputHandler;
 import org.gradle.api.model.ObjectFactory;
 import org.gradle.cache.CacheRepository;
-import org.gradle.cache.internal.CacheRepositoryServices;
+import org.gradle.cache.internal.BuildScopeCacheMapping;
 import org.gradle.cache.internal.CacheScopeMapping;
 import org.gradle.cache.internal.CleanupActionFactory;
+import org.gradle.cache.internal.DefaultCacheRepository;
 import org.gradle.cache.internal.InMemoryCacheDecoratorFactory;
 import org.gradle.cache.internal.VersionStrategy;
 import org.gradle.deployment.internal.DefaultDeploymentRegistry;
@@ -47,9 +48,11 @@ import org.gradle.initialization.BuildCancellationToken;
 import org.gradle.initialization.BuildClientMetaData;
 import org.gradle.initialization.BuildEventConsumer;
 import org.gradle.initialization.BuildRequestMetaData;
+import org.gradle.initialization.GradleUserHomeDirProvider;
 import org.gradle.initialization.layout.BuildLayout;
 import org.gradle.initialization.layout.BuildLayoutConfiguration;
 import org.gradle.initialization.layout.BuildLayoutFactory;
+import org.gradle.initialization.layout.GlobalCacheDir;
 import org.gradle.initialization.layout.ProjectCacheDir;
 import org.gradle.internal.build.BuildLayoutValidator;
 import org.gradle.internal.buildevents.BuildStartedTime;
@@ -119,7 +122,8 @@ public class BuildSessionScopeServices {
         registration.add(BuildEventConsumer.class, buildEventConsumer);
         registration.add(CalculatedValueContainerFactory.class);
         registration.add(BuildLayoutValidator.class);
-        registration.addProvider(new CacheRepositoryServices(startParameter.getGradleUserHomeDir(), startParameter.getProjectCacheDir()));
+        registration.add(BuildScopeCacheMapping.class);
+        registration.add(DefaultCacheRepository.class);
 
         // Must be no higher than this scope as needs cache repository services.
         registration.addProvider(new ScopeIdsServices());
@@ -145,13 +149,21 @@ public class BuildSessionScopeServices {
         return buildLayoutFactory.getLayoutFor(new BuildLayoutConfiguration(startParameter));
     }
 
-    ProjectCacheDir createCacheLayout(
+    ProjectCacheDir createProjectCacheDir(
+        GradleUserHomeDirProvider userHomeDirProvider,
         BuildLayout buildLayout,
         Deleter deleter,
         ProgressLoggerFactory progressLoggerFactory,
         StartParameter startParameter
     ) {
-        File cacheDir = startParameter.getProjectCacheDir() != null ? startParameter.getProjectCacheDir() : new File(buildLayout.getRootDirectory(), ".gradle");
+        File cacheDir;
+        if (startParameter.getProjectCacheDir() != null) {
+            cacheDir = startParameter.getProjectCacheDir();
+        } else if (buildLayout.isBuildDefinitionMissing()) {
+            cacheDir = new File(userHomeDirProvider.getGradleUserHomeDirectory(), "undefined-build");
+        } else {
+            cacheDir = new File(buildLayout.getRootDirectory(), ".gradle");
+        }
         return new ProjectCacheDir(cacheDir, progressLoggerFactory, deleter);
     }
 

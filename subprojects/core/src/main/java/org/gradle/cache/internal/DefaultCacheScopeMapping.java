@@ -22,6 +22,8 @@ import org.gradle.api.Project;
 import org.gradle.api.Task;
 import org.gradle.api.invocation.Gradle;
 import org.gradle.cache.GlobalCache;
+import org.gradle.initialization.layout.GlobalCacheDir;
+import org.gradle.initialization.layout.ProjectCacheDir;
 import org.gradle.util.GradleVersion;
 
 import javax.annotation.Nullable;
@@ -35,14 +37,15 @@ public class DefaultCacheScopeMapping implements CacheScopeMapping, GlobalCache 
     public static final String GLOBAL_CACHE_DIR_NAME = "caches";
     private static final Pattern CACHE_KEY_NAME_PATTERN = Pattern.compile("\\p{Alpha}+[-/.\\w]*");
 
-    private final File globalCacheDir;
-    private final File projectCacheDir;
+    private final GlobalCacheDir globalCacheDir;
+    @Nullable
+    private final ProjectCacheDir buildScopeCacheDir;
     private final GradleVersion version;
 
-    public DefaultCacheScopeMapping(File userHomeDir, @Nullable File projectCacheDir, GradleVersion version) {
+    public DefaultCacheScopeMapping(GlobalCacheDir globalCacheDir, @Nullable ProjectCacheDir buildScopeCacheDir, GradleVersion version) {
+        this.globalCacheDir = globalCacheDir;
         this.version = version;
-        this.globalCacheDir = new File(userHomeDir, GLOBAL_CACHE_DIR_NAME);
-        this.projectCacheDir = projectCacheDir;
+        this.buildScopeCacheDir = buildScopeCacheDir;
     }
 
     @Override
@@ -66,22 +69,19 @@ public class DefaultCacheScopeMapping implements CacheScopeMapping, GlobalCache 
     @Override
     public File getRootDirectory(@Nullable Object scope) {
         if (scope == null) {
-            return globalCacheDir;
+            return globalCacheDir.getDir();
         }
         if (scope instanceof File) {
             return (File) scope;
         }
         if (scope instanceof Gradle) {
-            Gradle gradle = (Gradle) scope;
-            return getBuildCacheDir(gradle.getRootProject());
+            return getBuildCacheDir();
         }
         if (scope instanceof Project) {
-            Project project = (Project) scope;
-            return getBuildCacheDir(project.getRootProject());
+            return getBuildCacheDir();
         }
         if (scope instanceof Task) {
-            Task task = (Task) scope;
-            return getBuildCacheDir(task.getProject().getRootProject());
+            return getBuildCacheDir();
         }
         throw new IllegalArgumentException(String.format("Don't know how to determine the cache directory for scope of type %s.", scope.getClass().getSimpleName()));
     }
@@ -97,15 +97,15 @@ public class DefaultCacheScopeMapping implements CacheScopeMapping, GlobalCache 
         }
     }
 
-    private File getBuildCacheDir(Project rootProject) {
-        if (projectCacheDir != null) {
-            return projectCacheDir;
+    private File getBuildCacheDir() {
+        if (buildScopeCacheDir == null) {
+            throw new IllegalStateException("No build specific cache dir specified.");
         }
-        return new File(rootProject.getProjectDir(), ".gradle");
+        return buildScopeCacheDir.getDir();
     }
 
     @Override
     public List<File> getGlobalCacheRoots() {
-        return ImmutableList.of(globalCacheDir);
+        return ImmutableList.of(globalCacheDir.getDir());
     }
 }
