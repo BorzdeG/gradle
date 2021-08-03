@@ -45,11 +45,10 @@ public class DefaultArtifactCaches implements ArtifactCachesProvider {
 
     public DefaultArtifactCaches(CacheScopeMapping cacheScopeMapping,
                                  CacheRepository cacheRepository,
-                                 Factory<WritableArtifactCacheLockingParameters> writableArtifactCacheLockingParametersFactory,
+                                 WritableArtifactCacheLockingParameters params,
                                  DocumentationRegistry documentationRegistry) {
         writableCacheMetadata = new DefaultArtifactCacheMetadata(cacheScopeMapping);
         writableArtifactCacheLockingManager = new LateInitWritableArtifactCacheLockingManager(() -> {
-            WritableArtifactCacheLockingParameters params = writableArtifactCacheLockingParametersFactory.create();
             return new WritableArtifactCacheLockingManager(cacheRepository, writableCacheMetadata, params.getFileAccessTimeJournal(), params.getUsedGradleVersions());
         });
         String roCache = System.getenv(READONLY_CACHE_ENV_VAR);

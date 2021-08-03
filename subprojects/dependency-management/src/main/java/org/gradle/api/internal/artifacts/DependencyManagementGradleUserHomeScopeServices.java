@@ -36,7 +36,6 @@ import org.gradle.internal.execution.history.ExecutionHistoryCacheAccess;
 import org.gradle.internal.execution.history.ExecutionHistoryStore;
 import org.gradle.internal.execution.history.impl.DefaultExecutionHistoryStore;
 import org.gradle.internal.file.FileAccessTimeJournal;
-import org.gradle.internal.service.ServiceRegistry;
 
 public class DependencyManagementGradleUserHomeScopeServices {
 
@@ -56,10 +55,10 @@ public class DependencyManagementGradleUserHomeScopeServices {
 
     ArtifactCachesProvider createArtifactCaches(CacheScopeMapping cacheScopeMapping,
                                                 CacheRepository cacheRepository,
-                                                ServiceRegistry registry,
+                                                DefaultArtifactCaches.WritableArtifactCacheLockingParameters parameters,
                                                 ListenerManager listenerManager,
                                                 DocumentationRegistry documentationRegistry) {
-        DefaultArtifactCaches artifactCachesProvider = new DefaultArtifactCaches(cacheScopeMapping, cacheRepository, () -> registry.get(DefaultArtifactCaches.WritableArtifactCacheLockingParameters.class), documentationRegistry);
+        DefaultArtifactCaches artifactCachesProvider = new DefaultArtifactCaches(cacheScopeMapping, cacheRepository, parameters, documentationRegistry);
         listenerManager.addListener(new BuildAdapter() {
             @Override
             public void buildFinished(BuildResult result) {
