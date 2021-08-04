@@ -40,7 +40,10 @@ class DefaultFileContentCacheFactoryTest extends Specification {
     TestNameTestDirectoryProvider tmpDir = new TestNameTestDirectoryProvider(getClass())
     def listenerManager = new DefaultListenerManager(Scopes.Build)
     def fileSystemAccess = Mock(FileSystemAccess)
-    def cacheRepository = new DefaultCacheRepository(new DefaultCacheScopeMapping(tmpDir.file("user-home"), tmpDir.file("build-dir"), GradleVersion.current()), new TestInMemoryCacheFactory())
+    def cacheScopeMapping = Stub(CacheScopeMapping) {
+        getBaseDirectory(_, _, _) >> { scope, key, strategy -> tmpDir.file("user-home").file(key).createDir() }
+    }
+    def cacheRepository = new DefaultCacheRepository(cacheScopeMapping, new TestInMemoryCacheFactory())
     def inMemoryTaskArtifactCache = new DefaultInMemoryCacheDecoratorFactory(false, new TestCrossBuildInMemoryCacheFactory()) {
         @Override
         CacheDecorator decorator(int maxEntriesToKeepInMemory, boolean cacheInMemoryForShortLivedProcesses) {

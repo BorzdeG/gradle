@@ -38,7 +38,9 @@ class GradleUserHomeCleanupServiceTest extends Specification implements GradleUs
     def userHomeDirProvider = Stub(GradleUserHomeDirProvider) {
         getGradleUserHomeDirectory() >> userHomeDir
     }
-    def cacheScopeMapping = new DefaultCacheScopeMapping(userHomeDir, null, GradleVersion.current())
+    def cacheScopeMapping = Mock(CacheScopeMapping) {
+        getRootDirectory(_) >> userHomeDir.createDir("caches")
+    }
     def usedGradleVersions = Stub(UsedGradleVersions) {
         getUsedGradleVersions() >> ([] as SortedSet)
     }
