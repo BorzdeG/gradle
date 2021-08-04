@@ -100,8 +100,7 @@ class AbstractIntegrationSpec extends Specification {
 
     def setup() {
         // Verify that the previous test (or fixtures) has cleaned up state correctly
-        assert System.getenv("M2_HOME") == null
-        assert System.getProperty("maven.repo.local") == null
+        m2.assertNoLeftoverState()
 
         m2.isolateMavenLocalRepo(executer)
         executer.beforeExecute {
@@ -114,10 +113,10 @@ class AbstractIntegrationSpec extends Specification {
 
     def cleanup() {
         executer.cleanup()
+        m2.cleanupState()
 
         // Verify that the test (or fixtures) has cleaned up state correctly
-        assert System.getenv("M2_HOME") == null
-        assert System.getProperty("maven.repo.local") == null
+        m2.assertNoLeftoverState()
     }
 
     private void recreateExecuter() {
